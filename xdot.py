@@ -16,7 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-'''Visualize dot graphs via the xdot format.'''
+'''Visualize dot graphs via the xdot format.
+https://github.com/xuyuan/xdot.py
+Improved version: support label url
+'''
 
 __author__ = "Jose Fonseca et al"
 
@@ -416,11 +419,12 @@ def square_distance(x1, y1, x2, y2):
 
 class Edge(Element):
 
-    def __init__(self, src, dst, points, shapes):
+    def __init__(self, src, dst, points, shapes, url):
         Element.__init__(self, shapes)
         self.src = src
         self.dst = dst
         self.points = points
+        self.url = url
 
     RADIUS = 10
 
@@ -447,6 +451,12 @@ class Edge(Element):
     def __repr__(self):
         return "<Edge %s -> %s>" % (self.src, self.dst)
 
+    def get_url(self, x, y):
+        if self.url is None:
+            return None
+        if self.is_inside(x, y):
+            return Url(self, self.url)
+        return None
 
 class Graph(Shape):
 
@@ -488,6 +498,10 @@ class Graph(Shape):
     def get_url(self, x, y):
         for node in self.nodes:
             url = node.get_url(x, y)
+            if url is not None:
+                return url
+        for edge in self.edges:
+            url = edge.get_url(x, y)
             if url is not None:
                 return url
         return None
@@ -1229,7 +1243,8 @@ class XDotParser(DotParser):
         if shapes:
             src = self.node_by_name[src_id]
             dst = self.node_by_name[dst_id]
-            self.edges.append(Edge(src, dst, points, shapes))
+            url = attrs.get('URL', None)
+            self.edges.append(Edge(src, dst, points, shapes, url))
 
     def parse(self):
         DotParser.parse(self)
